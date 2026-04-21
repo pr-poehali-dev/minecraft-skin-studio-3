@@ -50,11 +50,28 @@ export interface GalleryImage {
   uploadedAt: string;
 }
 
+export interface Product {
+  id: string;
+  title: string;
+  desc: string;
+  price: string;
+  icon: string;
+  tag: string;
+}
+
+const DEFAULT_PRODUCTS: Product[] = [
+  { id: "1", title: "Кастомный скин", desc: "Уникальный дизайн с нуля по твоему описанию. Любые цвета, паттерны и стиль.", price: "100 ₽", icon: "Sparkles", tag: "Популярно" },
+  { id: "2", title: "Простой скин", desc: "Базовый скин в одном стиле. Быстро, качественно, доступно.", price: "50 ₽", icon: "Wand2", tag: "" },
+  { id: "3", title: "Ребрендинг", desc: "Обновляем твой существующий скин — меняем цвета, добавляем детали.", price: "60 ₽", icon: "RefreshCw", tag: "" },
+  { id: "4", title: "Комплект скинов", desc: "3 и более скинов в едином стиле. Выгодно для полного сета.", price: "от 150 ₽", icon: "Package", tag: "Выгодно" },
+];
+
 const STORAGE_KEYS = {
   orders: "pc_orders",
   staff: "pc_staff",
   reviews: "pc_reviews",
   gallery: "pc_gallery",
+  products: "pc_products",
   clients: "pc_clients_count",
   currentUser: "pc_current_user",
 };
@@ -199,6 +216,34 @@ export function addGalleryImage(img: Omit<GalleryImage, "id" | "uploadedAt">): G
 }
 export function deleteGalleryImage(id: string) {
   saveGallery(getGallery().filter(i => i.id !== id));
+}
+
+// --- PRODUCTS ---
+export function getProducts(): Product[] {
+  const raw = localStorage.getItem(STORAGE_KEYS.products);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(DEFAULT_PRODUCTS));
+    return DEFAULT_PRODUCTS;
+  }
+  try { return JSON.parse(raw); } catch { return DEFAULT_PRODUCTS; }
+}
+export function saveProducts(products: Product[]) {
+  localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(products));
+}
+export function addProduct(product: Omit<Product, "id">): Product {
+  const products = getProducts();
+  const newProduct: Product = { ...product, id: Date.now().toString() };
+  products.push(newProduct);
+  saveProducts(products);
+  return newProduct;
+}
+export function updateProduct(id: string, data: Omit<Product, "id">) {
+  const products = getProducts();
+  const idx = products.findIndex(p => p.id === id);
+  if (idx !== -1) { products[idx] = { ...products[idx], ...data }; saveProducts(products); }
+}
+export function deleteProduct(id: string) {
+  saveProducts(getProducts().filter(p => p.id !== id));
 }
 
 // --- CLIENTS COUNT ---

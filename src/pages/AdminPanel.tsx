@@ -5,11 +5,12 @@ import {
   getStaff, addStaff, removeStaff, saveStaff,
   getReviews, approveReview, deleteReview,
   getGallery, addGalleryImage, deleteGalleryImage,
+  getProducts, addProduct, updateProduct, deleteProduct,
   getCurrentUser, logoutUser,
-  Order, Staff, Review, GalleryImage,
+  Order, Staff, Review, GalleryImage, Product,
 } from "@/lib/store";
 
-type Tab = "orders" | "archive" | "staff" | "reviews" | "gallery" | "team_chat";
+type Tab = "orders" | "archive" | "staff" | "reviews" | "gallery" | "team_chat" | "products";
 
 const STATUS_LABELS: Record<Order["status"], string> = {
   new: "Новый",
@@ -46,6 +47,12 @@ export default function AdminPanel() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [teamChat, setTeamChat] = useState<TeamMsg[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Product form
+  const [editProductId, setEditProductId] = useState<string | null>(null);
+  const [productForm, setProductForm] = useState({ title: "", desc: "", price: "", icon: "Sparkles", tag: "" });
+  const [showProductForm, setShowProductForm] = useState(false);
 
   // Active order chat
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
@@ -79,7 +86,32 @@ export default function AdminPanel() {
     setReviews(getReviews());
     setGallery(getGallery());
     setTeamChat(getTeamChat());
+    setProducts(getProducts());
   };
+
+  const PRODUCT_ICONS = ["Sparkles", "Wand2", "RefreshCw", "Package", "Star", "Zap", "Shield", "Crown", "Gem", "Palette"];
+
+  function openProductForm(product?: Product) {
+    if (product) {
+      setEditProductId(product.id);
+      setProductForm({ title: product.title, desc: product.desc, price: product.price, icon: product.icon, tag: product.tag });
+    } else {
+      setEditProductId(null);
+      setProductForm({ title: "", desc: "", price: "", icon: "Sparkles", tag: "" });
+    }
+    setShowProductForm(true);
+  }
+
+  function saveProductForm() {
+    if (!productForm.title.trim() || !productForm.price.trim()) return;
+    if (editProductId) {
+      updateProduct(editProductId, productForm);
+    } else {
+      addProduct(productForm);
+    }
+    setProducts(getProducts());
+    setShowProductForm(false);
+  }
 
   useEffect(() => { reload(); }, [tab]);
   useEffect(() => {
@@ -127,6 +159,7 @@ export default function AdminPanel() {
     { id: "archive", label: "Архив", icon: "Archive" },
     { id: "team_chat", label: "Чат состава", icon: "MessageSquare" },
     { id: "staff", label: "Сотрудники", icon: "Users" },
+    { id: "products", label: "Товары", icon: "Package" },
     { id: "reviews", label: "Отзывы", icon: "Star" },
     { id: "gallery", label: "Галерея", icon: "Image" },
   ];
@@ -469,6 +502,109 @@ export default function AdminPanel() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* PRODUCTS */}
+          {tab === "products" && (
+            <div className="p-5 md:p-8">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <div className="section-label mb-1">// Управление</div>
+                  <h2 style={{ fontFamily: "Oswald, sans-serif", fontSize: 28, fontWeight: 700, textTransform: "uppercase", color: "white" }}>Товары</h2>
+                </div>
+                <button className="btn-neon" style={{ padding: "8px 18px", fontSize: 13 }} onClick={() => openProductForm()}>
+                  <Icon name="Plus" size={14} />
+                  Добавить
+                </button>
+              </div>
+
+              {/* Product form modal */}
+              {showProductForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
+                  <div className="skin-card p-6 w-full max-w-lg" style={{ background: "#111" }}>
+                    <div style={{ fontFamily: "Oswald, sans-serif", fontSize: 18, fontWeight: 700, color: "white", textTransform: "uppercase", marginBottom: 20 }}>
+                      {editProductId ? "Редактировать товар" : "Новый товар"}
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>Название *</div>
+                        <input className="input-neon" placeholder="Название товара" value={productForm.title} onChange={e => setProductForm({ ...productForm, title: e.target.value })} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>Описание</div>
+                        <textarea className="input-neon resize-none" style={{ minHeight: 80 }} placeholder="Описание товара" value={productForm.desc} onChange={e => setProductForm({ ...productForm, desc: e.target.value })} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>Цена *</div>
+                          <input className="input-neon" placeholder="100 ₽" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>Метка (тег)</div>
+                          <input className="input-neon" placeholder="Популярно" value={productForm.tag} onChange={e => setProductForm({ ...productForm, tag: e.target.value })} />
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Иконка</div>
+                        <div className="flex flex-wrap gap-2">
+                          {PRODUCT_ICONS.map(ic => (
+                            <button key={ic} type="button"
+                              onClick={() => setProductForm({ ...productForm, icon: ic })}
+                              style={{ padding: "8px 10px", background: productForm.icon === ic ? "rgba(0,255,110,0.15)" : "rgba(255,255,255,0.04)", border: productForm.icon === ic ? "1px solid rgba(0,255,110,0.5)" : "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Icon name={ic} size={16} color={productForm.icon === ic ? "var(--neon)" : "rgba(255,255,255,0.5)"} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <button className="btn-neon flex-1 justify-center" style={{ padding: "10px" }} onClick={saveProductForm}>
+                        <Icon name="Check" size={15} />
+                        {editProductId ? "Сохранить" : "Создать"}
+                      </button>
+                      <button className="btn-outline" style={{ padding: "10px 20px" }} onClick={() => setShowProductForm(false)}>
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {products.length === 0 && (
+                <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.25)", fontSize: 14 }}>Нет товаров</div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {products.map(p => (
+                  <div key={p.id} className="skin-card p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        <div className="w-10 h-10 flex items-center justify-center neon-border flex-shrink-0">
+                          <Icon name={p.icon} size={18} color="var(--neon)" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span style={{ fontFamily: "Oswald, sans-serif", fontSize: 15, fontWeight: 700, color: "white", textTransform: "uppercase" }}>{p.title}</span>
+                            {p.tag && <span className="tag" style={{ fontSize: 9 }}>{p.tag}</span>}
+                          </div>
+                          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 6 }} className="line-clamp-2">{p.desc}</p>
+                          <div style={{ fontFamily: "Oswald, sans-serif", fontSize: 18, fontWeight: 700, color: "var(--neon)" }}>{p.price}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button style={{ padding: "6px 10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center" }}
+                          onClick={() => openProductForm(p)}>
+                          <Icon name="Pencil" size={13} />
+                        </button>
+                        <button style={{ padding: "6px 10px", background: "rgba(255,60,60,0.08)", border: "1px solid rgba(255,60,60,0.25)", color: "#ff4444", display: "flex", alignItems: "center" }}
+                          onClick={() => { deleteProduct(p.id); setProducts(getProducts()); }}>
+                          <Icon name="Trash2" size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

@@ -1,20 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import { addOrder, getReviews, addReview, getClientsCount, getStaff, getGallery, Review } from "@/lib/store";
+import { addOrder, getReviews, addReview, getClientsCount, getStaff, getGallery, getProducts, Review, Product } from "@/lib/store";
 
 const STUDIO_NAME = "PIXELCRAFT";
 const STUDIO_ABBR = "PC";
 const skinImage = "https://cdn.poehali.dev/projects/e61d7d76-87d1-48b7-9f55-e6f70491382c/files/8bb3251d-0466-4689-9d3d-204d889f0d81.jpg";
 
-const SERVICES = [
-  { icon: "Sparkles", title: "Кастомный скин", desc: "Уникальный дизайн с нуля по твоему описанию. Любые цвета, паттерны и стиль.", price: "100 ₽", tag: "Популярно" },
-  { icon: "Wand2", title: "Простой скин", desc: "Базовый скин в одном стиле. Быстро, качественно, доступно.", price: "50 ₽", tag: null },
-  { icon: "RefreshCw", title: "Ребрендинг", desc: "Обновляем твой существующий скин — меняем цвета, добавляем детали.", price: "60 ₽", tag: null },
-  { icon: "Package", title: "Комплект скинов", desc: "3 и более скинов в едином стиле. Выгодно для полного сета.", price: "от 150 ₽", tag: "Выгодно" },
-];
-
-const PRODUCTS = ["Простой скин — 50 ₽", "Кастомный скин — 100 ₽", "Ребрендинг — 60 ₽", "Комплект скинов (3+) — от 150 ₽"];
 const DEADLINES = ["1–2 дня", "3–5 дней", "Неделя", "Без срока"];
 
 interface OrderForm {
@@ -38,15 +30,21 @@ export default function Index() {
   const [reviewSent, setReviewSent] = useState(false);
   const [reviewError, setReviewError] = useState("");
 
-  // Staff & gallery
+  // Staff, gallery, products
   const [staff, setStaff] = useState(getStaff());
   const [gallery, setGallery] = useState(getGallery());
   const [clientsCount] = useState(getClientsCount());
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     setReviews(getReviews().filter(r => r.approved));
     setStaff(getStaff());
     setGallery(getGallery());
+    const prods = getProducts();
+    setProducts(prods);
+    if (prods.length > 0) {
+      setForm(f => ({ ...f, product: `${prods[0].title} — ${prods[0].price}` }));
+    }
   }, []);
 
   const scrollTo = (id: string) => {
@@ -76,7 +74,8 @@ export default function Index() {
     e.preventDefault();
     const order = addOrder(form);
     setOrderDone(order.id);
-    setForm({ nickname: "", product: PRODUCTS[0], description: "", deadline: DEADLINES[0], tg: "", ds: "", vk: "" });
+    const firstProduct = products.length > 0 ? `${products[0].title} — ${products[0].price}` : "";
+    setForm({ nickname: "", product: firstProduct, description: "", deadline: DEADLINES[0], tg: "", ds: "", vk: "" });
   };
 
   const handleReview = (e: React.FormEvent) => {
@@ -145,9 +144,12 @@ export default function Index() {
                   <div>
                     <label style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Выбор товара *</label>
                     <div className="flex flex-col gap-2">
-                      {PRODUCTS.map(p => (
-                        <button type="button" key={p} className={`option-btn text-left ${form.product === p ? "active" : ""}`} onClick={() => setForm({ ...form, product: p })}>{p}</button>
-                      ))}
+                      {products.map(p => {
+                        const label = `${p.title} — ${p.price}`;
+                        return (
+                          <button type="button" key={p.id} className={`option-btn text-left ${form.product === label ? "active" : ""}`} onClick={() => setForm({ ...form, product: label })}>{label}</button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div>
@@ -289,8 +291,8 @@ export default function Index() {
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {SERVICES.map((s, i) => (
-            <div key={i} className="skin-card p-6 md:p-8 flex flex-col">
+          {products.map((s) => (
+            <div key={s.id} className="skin-card p-6 md:p-8 flex flex-col">
               {s.tag ? <div className="tag mb-5">{s.tag}</div> : <div className="mb-5 h-[26px]" />}
               <div className="mb-5 w-11 h-11 flex items-center justify-center neon-border flex-shrink-0">
                 <Icon name={s.icon} size={20} color="var(--neon)" />
