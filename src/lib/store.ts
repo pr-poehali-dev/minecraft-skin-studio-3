@@ -20,6 +20,7 @@ export interface Order {
   status: "new" | "in_progress" | "done" | "cancelled";
   createdAt: string;
   messages: ChatMessage[];
+  pinned?: boolean;
 }
 
 export interface Staff {
@@ -88,6 +89,12 @@ export function deleteOrder(id: string) {
   const orders = getOrders().filter(o => o.id !== id);
   saveOrders(orders);
 }
+export function togglePinOrder(id: string) {
+  const orders = getOrders();
+  const idx = orders.findIndex(o => o.id === id);
+  if (idx !== -1) { orders[idx].pinned = !orders[idx].pinned; saveOrders(orders); }
+}
+
 export function addMessageToOrder(orderId: string, msg: Omit<ChatMessage, "id" | "time">) {
   const orders = getOrders();
   const idx = orders.findIndex(o => o.id === orderId);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import {
-  getOrders, updateOrderStatus, deleteOrder, addMessageToOrder,
+  getOrders, updateOrderStatus, deleteOrder, addMessageToOrder, togglePinOrder,
   getStaff, addStaff, removeStaff, saveStaff,
   getReviews, approveReview, deleteReview,
   getGallery, addGalleryImage, deleteGalleryImage,
@@ -89,7 +89,8 @@ export default function AdminPanel() {
     if (tab === "team_chat") teamChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [teamChat, tab]);
 
-  const activeOrders = orders.filter(o => o.status !== "done" && o.status !== "cancelled");
+  const sortByPin = (arr: Order[]) => [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  const activeOrders = sortByPin(orders.filter(o => o.status !== "done" && o.status !== "cancelled"));
   const archiveOrders = orders.filter(o => o.status === "done" || o.status === "cancelled");
   const chatOrder = orders.find(o => o.id === chatOrderId);
 
@@ -212,10 +213,13 @@ export default function AdminPanel() {
                   </div>
                 )}
                 {(tab === "orders" ? activeOrders : archiveOrders).map(order => (
-                  <div key={order.id} className="skin-card p-5">
+                  <div key={order.id} className="skin-card p-5" style={order.pinned ? { borderColor: "rgba(0,255,110,0.4)", boxShadow: "0 0 16px rgba(0,255,110,0.07)" } : {}}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          {order.pinned && (
+                            <span style={{ fontSize: 13 }} title="Закреплён">📌</span>
+                          )}
                           <span style={{ fontFamily: "Oswald, sans-serif", fontSize: 16, fontWeight: 700, color: "white", textTransform: "uppercase" }}>
                             {order.nickname}
                           </span>
@@ -231,9 +235,12 @@ export default function AdminPanel() {
                           {order.ds && <span>🎮 {order.ds}</span>}
                           {order.vk && <span>💬 {order.vk}</span>}
                           <span>⏱ {order.deadline}</span>
+                          {order.messages.length > 0 && (
+                            <span style={{ color: "var(--neon)" }}>💬 {order.messages.length}</span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 items-start">
                         {tab === "orders" && (
                           <>
                             <select
@@ -245,6 +252,12 @@ export default function AdminPanel() {
                               <option value="done">Выполнен</option>
                               <option value="cancelled">Отклонить</option>
                             </select>
+                            <button
+                              title={order.pinned ? "Открепить" : "Закрепить"}
+                              style={{ padding: "6px 10px", background: order.pinned ? "rgba(0,255,110,0.15)" : "rgba(255,255,255,0.04)", border: order.pinned ? "1px solid rgba(0,255,110,0.4)" : "1px solid rgba(255,255,255,0.1)", color: order.pinned ? "var(--neon)" : "rgba(255,255,255,0.45)", fontSize: 14, display: "flex", alignItems: "center", transition: "all 0.2s" }}
+                              onClick={() => { togglePinOrder(order.id); setOrders(getOrders()); }}>
+                              📌
+                            </button>
                             <button className="btn-outline" style={{ padding: "6px 14px", fontSize: 12 }}
                               onClick={() => setChatOrderId(order.id)}>
                               <Icon name="MessageSquare" size={13} />
@@ -252,7 +265,7 @@ export default function AdminPanel() {
                             </button>
                           </>
                         )}
-                        <button style={{ padding: "6px 12px", background: "rgba(255,60,60,0.1)", border: "1px solid rgba(255,60,60,0.3)", color: "#ff4444", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}
+                        <button style={{ padding: "6px 12px", background: "rgba(255,60,60,0.08)", border: "1px solid rgba(255,60,60,0.25)", color: "#ff4444", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}
                           onClick={() => { deleteOrder(order.id); setOrders(getOrders()); }}>
                           <Icon name="Trash2" size={13} />
                           Удалить
