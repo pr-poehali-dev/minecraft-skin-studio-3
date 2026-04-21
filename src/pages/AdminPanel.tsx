@@ -506,10 +506,16 @@ export default function AdminPanel() {
                             <Icon name="Check" size={13} />
                           </button>
                         )}
-                        <button style={{ padding: "6px 12px", background: "rgba(255,60,60,0.07)", border: "1px solid rgba(255,60,60,0.2)", color: "#ff4444", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}
-                          onClick={() => { deleteReview(r.id); setReviews(getReviews()); }}>
-                          <Icon name="Trash2" size={13} />
-                        </button>
+                        {currentUser?.isOwner ? (
+                          <button style={{ padding: "6px 12px", background: "rgba(255,60,60,0.07)", border: "1px solid rgba(255,60,60,0.2)", color: "#ff4444", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}
+                            onClick={() => { deleteReview(r.id); setReviews(getReviews()); }}>
+                            <Icon name="Trash2" size={13} />
+                          </button>
+                        ) : (
+                          <div style={{ padding: "6px 12px", fontSize: 11, color: "rgba(255,255,255,0.2)" }} title="Только владелец может удалять отзывы">
+                            🔒
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
